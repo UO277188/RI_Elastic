@@ -5,7 +5,7 @@ from elasticsearch import Elasticsearch
 def main():
     # Password para el usuario 'lectura' asignada por nosotros
     #
-    READONLY_PASSWORD = "xrAKxQx4YsCeB3pa=J9X"
+    READONLY_PASSWORD = "abretesesamo"
 
     # Creamos el cliente y lo conectamos a nuestro servidor
     #
