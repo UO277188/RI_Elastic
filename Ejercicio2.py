@@ -13,7 +13,6 @@ def main():
 
     # cliente elastic
     global es
-
     es = Elasticsearch(
         "https://localhost:9200",
         ca_certs="./http_ca.crt",
@@ -22,7 +21,7 @@ def main():
 
     # consulta para encontrar los significant terms
     significantTermsJson = es.search(
-        index="tweets-20090624-20090626-en_es-10percent",
+        index="tweets-20090624-20090626-en_es-10percent-ejercicio2",
         body={
             "size": 0,
             "query": {
@@ -34,7 +33,7 @@ def main():
                 "Most significant terms": {
                     "significant_terms": {
                         "field": "text",
-                        "size": 7
+                        "size": 5
                     }
                 }
             }
@@ -46,19 +45,21 @@ def main():
     for terms in significantTermsJson["aggregations"]["Most significant terms"]["buckets"]:
         sigTerms.append(terms["key"])
 
-    # construyo la query
-    query = "text:\"rip\" AND "
+    # construyo la nueva query empezando por el idioma y el termino original 
+    query = "lang:en AND (text:rip OR "
     for i in range (0, len(sigTerms)):
         if(i==len(sigTerms)-1):
-            query += "text:\""+sigTerms[i]+"\""
+            query += "text:"+sigTerms[i]+""
         else:
-            query += "text:\""+sigTerms[i]+"\" AND "
+            query += "text:"+sigTerms[i]+" OR "
+    query += ")"
+    print(query)
 
     # hago la consulta expandida
     expandida = es.search(
-        index="tweets-20090624-20090626-en_es-10percent",
+        index="tweets-20090624-20090626-en_es-10percent-ejercicio2",
         body={
-            "size": 0,
+            "track_total_hits": "true",
             "query": {
                 "query_string": {
                     "query": query
@@ -66,6 +67,19 @@ def main():
             }
         }
     )
+
+    # volcado al ndjson
+    file = open("Ejercicio2_Volcado.ndjson", "w")
+    for tweet in expandida["hits"]["hits"]:
+        infoTweet = tweet["_source"]
+        contenido = json.dumps(
+            {
+                "Fecha": infoTweet["created_at"],
+                "Autor": infoTweet["user_id_str"],
+                "Texto": infoTweet["text"]
+            }
+        )
+        file.write(contenido+"\n")
 
     fin = datetime.now()
     print(fin-inicio)
