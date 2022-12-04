@@ -5,6 +5,9 @@ from elasticsearch import Elasticsearch
 
 
 def main():
+    from datetime import datetime
+    inicio = datetime.now()
+
     # Password para el usuario 'lectura'
     READONLY_PASSWORD = "abretesesamo"
 
@@ -47,16 +50,35 @@ def main():
         }
     )
 
+    # abre un fichero para escribir los resultados
+    file = open("Ejercicio1_Entidades.txt", 'w')
+
     # llamada a la api de wikidata para encontrar las entidades
+    keys = {}   # diccionario para guardar las entidades
     for fechas in results["aggregations"]["Trending topics per hour"]["buckets"]:
         for topics in (fechas["Trending topics"]["buckets"]):
             url = "https://www.wikidata.org/w/api.php?action=wbsearchentities&language=es&format=json&search="
+
+            # construyo la URL (para poder utilizar los shingles)
             for key in topics["key"].split(" "):
                 url = url + str(key)+"+"
-                r = requests.get(url)
-                resultadoJSON = r.json()
-                if(len(resultadoJSON["search"])>0):
-                    print(resultadoJSON["search"][0]["display"]["label"]["value"])
+
+            # consulto con wikidata
+            r = requests.get(url)
+            resultadoJSON = r.json()
+            if len(resultadoJSON["search"])>0:
+                entidades = resultadoJSON["search"]
+                for entidad in entidades:
+                    if(topics["key"] in keys):
+                        keys[topics["key"]].append(entidad["id"])
+                    else:
+                        keys[topics["key"]] = [entidad["id"]]
+
+                file.write(topics["key"]+str(keys[topics["key"]])+"\n")
+                
+    fin = datetime.now()
+    print(fin-inicio)
+    file.close()
 
 
 if __name__ == '__main__':
